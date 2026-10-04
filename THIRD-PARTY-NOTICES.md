@@ -5,7 +5,6 @@ SharpInterpreter uses the components below. All are under the MIT License (text 
 | Component | Copyright | Source |
 |---|---|---|
 | .NET runtime and libraries, including the WebAssembly runtime (bundled in the runner) | .NET Foundation and Contributors | https://github.com/dotnet/runtime |
-| ASP.NET Core Blazor WebAssembly (`Microsoft.AspNetCore.Components.WebAssembly`, bundled in the runner) | .NET Foundation and Contributors | https://github.com/dotnet/aspnetcore |
 | Roslyn (`Microsoft.CodeAnalysis.CSharp`, bundled in the runner) | .NET Foundation and Contributors | https://github.com/dotnet/roslyn |
 | Basic.Reference.Assemblies (`Basic.Reference.Assemblies.Net100`, bundled in the runner) | Jared Parsons | https://github.com/jaredpar/basic-reference-assemblies |
 | xUnit.net (tests only) | .NET Foundation and Contributors | https://github.com/xunit/xunit |

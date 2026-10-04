@@ -5,8 +5,8 @@
 //   const result = await interpreter.run('Console.WriteLine(6 * 7);', { 'sales.csv': file });
 //   // { Ok, Output, Error, Charts, CompileMs, RunMs }
 //
-// Scripts run one at a time. One that runs too long can't be interrupted inside the page (WebAssembly
-// there has a single thread), so the whole iframe is thrown away and the next run starts a fresh one.
+// Scripts run one at a time, in a Web Worker of the runner page; the page ends one that runs too long.
+// If the page itself stops answering, the whole iframe is thrown away and the next run loads a fresh one.
 (function (global) {
     'use strict';
 
@@ -86,12 +86,13 @@
             let timer;
             const result = new Promise(resolve => {
                 this._pending.set(id, resolve);
+                // The page enforces timeoutMs; this only catches a page that stopped answering.
                 timer = setTimeout(() => {
                     this._recycle(null);
-                    resolve(failure(`The script ran longer than ${Math.round(this._timeoutMs / 1000)} seconds and was stopped.`));
-                }, this._timeoutMs);
+                    resolve(failure("The C# runner stopped responding and was restarted."));
+                }, this._timeoutMs + 10000);
             });
-            this._frame.contentWindow.postMessage({ id, code, files: encoded }, this._origin);
+            this._frame.contentWindow.postMessage({ id, code, files: encoded, timeoutMs: this._timeoutMs }, this._origin);
             try {
                 return await result;
             } finally {
