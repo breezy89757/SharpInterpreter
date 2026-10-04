@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/DemoHost/DemoHost.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/SharpInterpreter.Engine/SharpInterpreter.Engine.csproj" />
+    <Project Path="src/SharpInterpreter.Runner/SharpInterpreter.Runner.csproj" />
+    <Project Path="src/SharpInterpreter.Script/SharpInterpreter.Script.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SharpInterpreter.Engine.Tests/SharpInterpreter.Engine.Tests.csproj" />
+  </Folder>
+</Solution>

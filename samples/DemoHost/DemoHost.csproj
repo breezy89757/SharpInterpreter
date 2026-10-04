@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <!-- Demo: a chat-like page on one origin, the runner on another (see Program.cs). -->
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RunnerProject>$(MSBuildThisFileDirectory)..\..\src\SharpInterpreter.Runner\SharpInterpreter.Runner.csproj</RunnerProject>
+    <RunnerPublishDir>$(MSBuildThisFileDirectory)obj\runner\</RunnerPublishDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\host\sharp-interpreter.js" Link="sharp-interpreter.js" CopyToOutputDirectory="PreserveNewest" />
+    <RunnerSource Include="..\..\src\**\*.cs;..\..\src\**\*.csproj;..\..\src\SharpInterpreter.Runner\wwwroot\**\*" Exclude="..\..\src\**\bin\**;..\..\src\**\obj\**" />
+  </ItemGroup>
+
+  <!-- Publish the runner (a static site) and copy it next to the demo as runner\. -->
+  <Target Name="PublishRunner" BeforeTargets="AssignTargetPaths" Inputs="@(RunnerSource)" Outputs="$(RunnerPublishDir)wwwroot\index.html">
+    <MSBuild Projects="$(RunnerProject)" Targets="Restore" Properties="Configuration=Release" />
+    <MSBuild Projects="$(RunnerProject)" Targets="Publish" Properties="Configuration=Release;PublishDir=$(RunnerPublishDir);_Restored=true" />
+  </Target>
+
+  <Target Name="IncludeRunner" AfterTargets="PublishRunner" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <_RunnerFile Include="$(RunnerPublishDir)wwwroot\**\*" />
+      <None Include="@(_RunnerFile)" Link="runner\%(_RunnerFile.RecursiveDir)%(_RunnerFile.Filename)%(_RunnerFile.Extension)" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
+</Project>

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Basic.Reference.Assemblies.Net100" Version="1.8.12" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SharpInterpreter.Script\SharpInterpreter.Script.csproj" />
+  </ItemGroup>
+
+  <!-- Roslyn needs the script library's metadata; in the browser its loaded image isn't readable, so carry a copy. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\SharpInterpreter.Script\bin\$(Configuration)\net10.0\SharpInterpreter.Script.dll" LogicalName="SharpInterpreter.Script.dll" Visible="false" />
+  </ItemGroup>
+</Project>

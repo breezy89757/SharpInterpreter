@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SharpInterpreter demo</title>
+    <style>
+        :root { color-scheme: light dark; --border: #d0d7de; --muted: #6e7781; --bg2: #f6f8fa; --err: #cf222e; }
+        @media (prefers-color-scheme: dark) { :root { --border: #30363d; --muted: #8b949e; --bg2: #161b22; --err: #f85149; } }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0 auto; max-width: 960px; padding: 24px 16px 64px; line-height: 1.5; }
+        h1 { font-size: 22px; margin: 0 0 4px; }
+        p.lede { margin: 0 0 18px; color: var(--muted); }
+        textarea { width: 100%; box-sizing: border-box; min-height: 240px; font: 13px/1.5 'Cascadia Code', Consolas, monospace;
+                   padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg2); color: inherit; }
+        .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0 18px; }
+        button { font: inherit; padding: 6px 16px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
+        .status { color: var(--muted); font-size: 14px; }
+        pre { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; overflow-x: auto; white-space: pre-wrap; margin: 0 0 14px; }
+        pre.error { color: var(--err); }
+        .chart { position: relative; height: 300px; border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-bottom: 12px; }
+        .files { font-size: 14px; color: var(--muted); }
+    </style>
+</head>
+<body>
+    <h1>SharpInterpreter demo</h1>
+    <p class="lede">This page (port 5280) runs C# in a hidden iframe served from another site (127.0.0.1:5281). The runner has no network and only sees the files you pass.</p>
+
+    <textarea id="code" spellcheck="false" aria-label="C# script">var sales = Table.Read("sales.csv");
+
+var byRegion = sales.Rows
+    .GroupBy(r => r["region"])
+    .Select(g => new { Region = g.Key, Revenue = g.Sum(r => r.Num("revenue")) })
+    .OrderByDescending(x => x.Revenue)
+    .ToList();
+Out.Table(byRegion);
+
+var months = sales.Rows.Select(r => r["month"]).Distinct().ToList();
+Chart.Bar("Revenue by region", byRegion.Select(x => x.Region), byRegion.Select(x => x.Revenue));
+Chart.Line("Revenue by month", months,
+    byRegion.Select(x => new Series(x.Region,
+        months.Select(m => sales.Rows.Where(r => r["region"] == x.Region && r["month"] == m).Sum(r => r.Num("revenue"))).ToList())).ToArray());</textarea>
+
+    <div class="bar">
+        <button id="run" type="button">Run</button>
+        <label class="files">Files: <input id="files" type="file" multiple accept=".csv,.txt,.json"></label>
+        <span id="status" class="status" role="status"></span>
+    </div>
+
+    <div id="output"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+    <script src="/config.js"></script>
+    <script src="/sharp-interpreter.js"></script>
+    <script>
+        const sample = 'region,month,revenue\nNorth,2026-07,128000\nSouth,2026-07,96000\nNorth,2026-08,141000\nSouth,2026-08,102000\nNorth,2026-09,156000\nSouth,2026-09,99000\n';
+        const interpreter = new SharpInterpreter({ runnerUrl: window.RUNNER_URL });
+        const status = document.getElementById('status');
+        const output = document.getElementById('output');
+
+        status.textContent = 'Loading the runner…';
+        interpreter.start().then(() => status.textContent = 'Ready.', e => status.textContent = e.message);
+
+        document.getElementById('run').addEventListener('click', async () => {
+            const files = { 'sales.csv': sample };
+            for (const file of document.getElementById('files').files) files[file.name] = file;
+            status.textContent = 'Running…';
+            const result = await interpreter.run(document.getElementById('code').value, files);
+            status.textContent = result.Ok
+                ? `Done: compiled in ${Math.round(result.CompileMs)} ms, ran in ${Math.round(result.RunMs)} ms.`
+                : 'Failed.';
+            render(result);
+        });
+
+        function render(result) {
+            output.replaceChildren();
+            for (const [text, cls] of [[result.Output, ''], [result.Error, 'error']]) {
+                if (!text) continue;
+                const pre = document.createElement('pre');
+                pre.className = cls;
+                pre.textContent = text;
+                output.appendChild(pre);
+            }
+            const palette = ['#4e79a7', '#f28e2b', '#59a14f', '#e15759', '#76b7b2', '#edc948'];
+            for (const spec of result.Charts || []) {
+                const box = document.createElement('div');
+                box.className = 'chart';
+                const canvas = document.createElement('canvas');
+                box.appendChild(canvas);
+                output.appendChild(box);
+                const pie = spec.Type === 'pie';
+                new Chart(canvas, {
+                    type: pie ? 'pie' : spec.Type === 'line' ? 'line' : 'bar',
+                    data: {
+                        labels: spec.Labels,
+                        datasets: spec.Series.map((s, i) => ({
+                            label: s.Name, data: s.Values,
+                            backgroundColor: pie ? spec.Labels.map((_, j) => palette[j % palette.length]) : palette[i % palette.length],
+                            borderColor: palette[i % palette.length],
+                        })),
+                    },
+                    options: { maintainAspectRatio: false, animation: false, plugins: { title: { display: true, text: spec.Title } } },
+                });
+            }
+        }
+    </script>
+</body>
+</html>
